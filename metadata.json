@@ -1,0 +1,6 @@
+{
+  "name": "Bharat Kala Museum",
+  "description": "An Interactive 3D Virtual Journey Through Indian Art featuring a navigable 3D History Hall timeline, interactive Leaflet India Art & Culture Map, and original Warli × Kalamkari Regional Painting Fusion gallery.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
