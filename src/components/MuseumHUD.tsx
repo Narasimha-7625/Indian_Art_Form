@@ -9,6 +9,7 @@ import {
   Compass,
   Eye,
   Home,
+  Info,
   Layers,
   MapPin,
   Pause,
@@ -37,6 +38,7 @@ interface MuseumHUDProps {
   onOpenTimelineOverview: () => void;
   onOpenArtMap: () => void;
   onOpenFusionGallery: () => void;
+  onOpenAbout: () => void;
   onTeleportToExhibit: (exhibitId: string) => void;
   onInspectExhibit: (exhibitId: string) => void;
   // Guided Tour state & handlers
@@ -62,6 +64,7 @@ export const MuseumHUD: React.FC<MuseumHUDProps> = ({
   onOpenTimelineOverview,
   onOpenArtMap,
   onOpenFusionGallery,
+  onOpenAbout,
   onTeleportToExhibit,
   onInspectExhibit,
   isTourActive,
@@ -80,9 +83,9 @@ export const MuseumHUD: React.FC<MuseumHUDProps> = ({
 
   const sectionLabelMap: Record<'entrance' | 'history' | 'map' | 'fusion', string> = {
     entrance: 'CENTRAL ENTRANCE PAVILION',
-    history: 'HISTORY HALL · INDIAN ART TIMELINE (CO1)',
-    map: 'WEST WING · INDIAN ART MAP (CO1)',
-    fusion: 'EAST WING · FUSION GALLERY (CO2)'
+    history: 'HISTORY HALL · TIMELINE (CLA-I · CO1)',
+    map: 'WEST WING · ART MAP (CLA-I · CO1)',
+    fusion: 'EAST WING · FUSION GALLERY (CLA-I · CO2)'
   };
 
   // Map visitor world coordinates (x in [-24, 24], z in [-46, 9]) to mini-map SVG (120 x 140)
@@ -90,78 +93,11 @@ export const MuseumHUD: React.FC<MuseumHUDProps> = ({
   const mapY = Math.max(8, Math.min(132, 112 + (visitorStatus.position[1] / 46) * 95));
 
   return (
-    <div className="pointer-events-none fixed inset-0 z-30 flex flex-col justify-between select-none">
-      {/* ===================================================================== */}
-      {/* TOP BAR: BHARAT KALA MUSEUM & PRIMARY NAVIGATION                      */}
-      {/* ===================================================================== */}
-      <header className="pointer-events-auto w-full px-4 sm:px-6 py-3 bg-[#14100D]/90 backdrop-blur-md border-b border-[#C89D54]/35 flex items-center justify-between gap-4">
-        {/* Zone 1: Brand Title */}
-        <button
-          type="button"
-          onClick={onTeleportToEntranceHall}
-          className="font-serif-display text-lg sm:text-xl font-semibold tracking-wider text-[#F7F4EE] hover:text-[#E5B869] transition-colors cursor-pointer whitespace-nowrap"
-        >
-          BHARAT KALA MUSEUM
-        </button>
-
-        {/* Zone 2: 5 Primary Navigation Links */}
-        <nav className="hidden lg:flex items-center gap-6 text-xs font-medium text-[#D6CEBE]">
-          <button
-            type="button"
-            onClick={onGoHomeEntrance}
-            className="hover:text-[#E5B869] transition-colors cursor-pointer whitespace-nowrap"
-          >
-            HOME
-          </button>
-          <button
-            type="button"
-            onClick={onOpenTimelineOverview}
-            className="hover:text-[#E5B869] transition-colors cursor-pointer whitespace-nowrap"
-          >
-            HISTORY TIMELINE
-          </button>
-          <button
-            type="button"
-            onClick={onOpenArtMap}
-            className="hover:text-[#E5B869] transition-colors cursor-pointer whitespace-nowrap"
-          >
-            ART MAP
-          </button>
-          <button
-            type="button"
-            onClick={onOpenFusionGallery}
-            className="hover:text-[#E5B869] transition-colors cursor-pointer whitespace-nowrap"
-          >
-            FUSION GALLERY
-          </button>
-          <button
-            type="button"
-            onClick={isTourActive ? onExitGuidedTour : onStartGuidedTour}
-            className={`transition-colors cursor-pointer whitespace-nowrap ${
-              isTourActive ? 'text-[#E5B869] font-semibold underline' : 'hover:text-[#E5B869]'
-            }`}
-          >
-            {isTourActive ? 'GUIDED TOUR (ACTIVE)' : 'GUIDED TOUR'}
-          </button>
-        </nav>
-
-        {/* Zone 3: Exit / Home Action */}
-        <div className="flex items-center gap-2.5">
-          <button
-            type="button"
-            onClick={onGoHomeEntrance}
-            className="px-3.5 py-1.5 rounded-lg bg-[#261E18] hover:bg-[#362B22] border border-[#C89D54]/45 text-xs font-semibold text-[#F7F4EE] flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
-          >
-            <Home className="w-3.5 h-3.5 text-[#E5B869]" />
-            <span>Exit / Home</span>
-          </button>
-        </div>
-      </header>
-
+    <div className="pointer-events-none fixed inset-x-0 top-14 bottom-0 z-30 flex flex-col justify-between select-none">
       {/* ===================================================================== */}
       {/* CENTER CROSSHAIR & HOVER TARGET PROMPT                                */}
       {/* ===================================================================== */}
-      <div className="fixed inset-0 pointer-events-none flex items-center justify-center">
+      <div className="fixed inset-x-0 top-14 bottom-0 pointer-events-none flex items-center justify-center">
         <div className="relative flex flex-col items-center">
           {/* Visible Crosshair Reticle */}
           <div
@@ -208,12 +144,12 @@ export const MuseumHUD: React.FC<MuseumHUDProps> = ({
       {/* ===================================================================== */}
       <div className="flex-1 flex items-start justify-between px-4 sm:px-6 py-4 gap-4 overflow-hidden">
         {/* LEFT SIDE: Museum Navigation Panel */}
-        <aside className="pointer-events-auto w-60 rounded-xl bg-[#14100D]/85 backdrop-blur-md border border-[#C89D54]/35 p-3.5 space-y-3 shadow-xl max-h-[calc(100vh-170px)] overflow-y-auto">
+        <aside className="pointer-events-auto hidden md:block w-60 rounded-xl bg-[#14100D]/85 backdrop-blur-md border border-[#C89D54]/35 p-3.5 space-y-3 shadow-xl max-h-[calc(100vh-150px)] overflow-y-auto">
           <div className="text-[11px] uppercase tracking-widest text-[#C89D54] font-semibold border-b border-[#C89D54]/20 pb-2">
-            Museum Navigation
+            3D Museum Navigation
           </div>
 
-          {/* 5 Required Navigation Buttons */}
+          {/* Section Navigation Buttons */}
           <div className="space-y-1.5">
             <button
               type="button"
@@ -230,7 +166,7 @@ export const MuseumHUD: React.FC<MuseumHUDProps> = ({
               className="w-full px-3 py-2 rounded-lg bg-[#1F1914] hover:bg-[#2E251D] border border-white/10 hover:border-[#C89D54]/50 text-xs font-medium text-[#F7F4EE] flex items-center gap-2.5 transition-colors cursor-pointer"
             >
               <Sparkles className="w-3.5 h-3.5 text-[#E5B869] shrink-0" />
-              <span>HISTORY TIMELINE</span>
+              <span>HISTORY TIMELINE (CO1)</span>
             </button>
 
             <button
@@ -239,7 +175,7 @@ export const MuseumHUD: React.FC<MuseumHUDProps> = ({
               className="w-full px-3 py-2 rounded-lg bg-[#1F1914] hover:bg-[#2E251D] border border-white/10 hover:border-[#C89D54]/50 text-xs font-medium text-[#F7F4EE] flex items-center gap-2.5 transition-colors cursor-pointer"
             >
               <MapPin className="w-3.5 h-3.5 text-[#E5B869] shrink-0" />
-              <span>ART MAP</span>
+              <span>INDIAN ART MAP (CO1)</span>
             </button>
 
             <button
@@ -248,7 +184,16 @@ export const MuseumHUD: React.FC<MuseumHUDProps> = ({
               className="w-full px-3 py-2 rounded-lg bg-[#1F1914] hover:bg-[#2E251D] border border-white/10 hover:border-[#C89D54]/50 text-xs font-medium text-[#F7F4EE] flex items-center gap-2.5 transition-colors cursor-pointer"
             >
               <Layers className="w-3.5 h-3.5 text-[#E5B869] shrink-0" />
-              <span>FUSION GALLERY</span>
+              <span>FUSION GALLERY (CO2)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={onOpenAbout}
+              className="w-full px-3 py-2 rounded-lg bg-[#1F1914] hover:bg-[#2E251D] border border-white/10 hover:border-[#C89D54]/50 text-xs font-medium text-[#F7F4EE] flex items-center gap-2.5 transition-colors cursor-pointer"
+            >
+              <Info className="w-3.5 h-3.5 text-[#E5B869] shrink-0" />
+              <span>ABOUT</span>
             </button>
 
             <button
@@ -268,7 +213,7 @@ export const MuseumHUD: React.FC<MuseumHUDProps> = ({
           {/* Quick 3D Teleport to the 6 History Hall Exhibits */}
           <div className="pt-2 border-t border-[#C89D54]/20 space-y-1.5">
             <div className="text-[10px] uppercase tracking-wider text-[#A89F91] font-semibold">
-              History Hall Exhibits (CO1)
+              6 Timeline Exhibits (CO1)
             </div>
             <div className="space-y-1">
               {TIMELINE_EXHIBITS.map((ex) => {
@@ -303,7 +248,7 @@ export const MuseumHUD: React.FC<MuseumHUDProps> = ({
         </aside>
 
         {/* RIGHT SIDE: Current Section, Active Exhibit Info & Floorplan Mini-Map */}
-        <aside className="pointer-events-auto hidden sm:flex flex-col w-72 rounded-xl bg-[#14100D]/85 backdrop-blur-md border border-[#C89D54]/35 p-4 space-y-3.5 shadow-xl">
+        <aside className="pointer-events-auto hidden sm:flex flex-col w-72 rounded-xl bg-[#14100D]/85 backdrop-blur-md border border-[#C89D54]/35 p-4 space-y-3.5 shadow-xl ml-auto">
           {/* Current Section */}
           <div className="border-b border-[#C89D54]/20 pb-3">
             <div className="text-[10px] uppercase tracking-widest text-[#A89F91]">
@@ -448,12 +393,10 @@ export const MuseumHUD: React.FC<MuseumHUDProps> = ({
           <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
             <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-[#E5B869] font-semibold">
               <Compass className="w-4 h-4" />
-              <span>
-                Guided Tour · Stop 0{currentTourStop.stopNumber} of 08
-              </span>
+              <span>Guided Tour · Stop 0{currentTourStop.stopNumber} of 08</span>
             </div>
 
-            {/* 8 Stop Pills */}
+            {/* 8 Stop Indicators */}
             <div className="flex items-center gap-1">
               {GUIDED_TOUR_STOPS.map((st, idx) => (
                 <span

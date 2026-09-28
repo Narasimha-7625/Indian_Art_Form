@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import L from 'leaflet';
 import {
-  ArrowLeft,
   Compass,
+  Cuboid,
   Eye,
   MapPin,
   Minus,
@@ -76,7 +76,8 @@ export const ArtMapSection: React.FC<ArtMapSectionProps> = ({
     });
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       maxZoom: 18
     }).addTo(map);
 
@@ -113,9 +114,9 @@ export const ArtMapSection: React.FC<ArtMapSectionProps> = ({
       });
 
       const popupHtml = `
-        <div style="min-width: 245px; max-width: 280px; color: #F7F4EE;">
+        <div style="min-width: 255px; max-width: 295px; color: #F7F4EE;">
           <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: #E5B869; font-weight: 600; margin-bottom: 2px;">
-            0${loc.order} · ${loc.stateRegion}
+            CLA-I · CO1 · 0${loc.order} · ${loc.stateRegion}
           </div>
           <div style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: 21px; font-weight: 700; color: #F7F4EE; margin-bottom: 4px;">
             ${loc.name}
@@ -123,8 +124,11 @@ export const ArtMapSection: React.FC<ArtMapSectionProps> = ({
           <div style="font-size: 12px; font-weight: 600; color: #C89D54; margin-bottom: 6px;">
             ${loc.artTradition}
           </div>
-          <p style="font-size: 12px; color: #D6CEBE; line-height: 1.45; margin: 0 0 10px 0;">
-            ${loc.shortDescription}
+          <p style="font-size: 11.5px; color: #EAE2D3; line-height: 1.45; margin: 0 0 6px 0;">
+            <strong>Historical Context:</strong> ${loc.shortDescription}
+          </p>
+          <p style="font-size: 11.5px; color: #D6CEBE; line-height: 1.45; margin: 0 0 10px 0;">
+            <strong>Significance:</strong> ${loc.culturalSignificance}
           </p>
           <button
             type="button"
@@ -142,14 +146,14 @@ export const ArtMapSection: React.FC<ArtMapSectionProps> = ({
               text-align: center;
             "
           >
-            View Details →
+            View Full Details →
           </button>
         </div>
       `;
 
       const marker = L.marker(loc.coordinates, { icon: customIcon })
         .addTo(map)
-        .bindPopup(popupHtml, { maxWidth: 300 });
+        .bindPopup(popupHtml, { maxWidth: 315 });
 
       marker.on('click', () => {
         setActiveSite(loc);
@@ -158,7 +162,7 @@ export const ArtMapSection: React.FC<ArtMapSectionProps> = ({
       markersRef.current[loc.id] = marker;
     });
 
-    // Listen for clicks on the "View Details" button inside Leaflet popups
+    // Listen for clicks on the "View Full Details" button inside Leaflet popups
     const handlePopupClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement | null;
       const btn = target?.closest('[data-view-details]') as HTMLElement | null;
@@ -175,12 +179,17 @@ export const ArtMapSection: React.FC<ArtMapSectionProps> = ({
     const containerEl = mapContainerRef.current;
     containerEl.addEventListener('click', handlePopupClick);
 
-    // Ensure proper Leaflet sizing after mount
+    const resizeObserver = new ResizeObserver(() => {
+      map.invalidateSize();
+    });
+    resizeObserver.observe(containerEl);
+
     setTimeout(() => {
       map.invalidateSize();
     }, 120);
 
     return () => {
+      resizeObserver.disconnect();
       containerEl.removeEventListener('click', handlePopupClick);
       map.remove();
       mapInstanceRef.current = null;
@@ -247,32 +256,23 @@ export const ArtMapSection: React.FC<ArtMapSectionProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-40 flex flex-col bg-[#14110F] text-[#F7F4EE] overflow-hidden">
-      {/* Top Section Header Bar */}
-      <header className="flex flex-wrap items-center justify-between gap-4 px-6 py-4 bg-[#191410] border-b border-[#C89D54]/35">
-        <div className="flex items-center gap-4">
-          <button
-            type="button"
-            onClick={onBackToMuseum}
-            className="px-3.5 py-2 rounded-lg bg-[#261E18] hover:bg-[#352A21] border border-[#C89D54]/45 text-xs font-semibold text-[#F7F4EE] flex items-center gap-2 transition-colors cursor-pointer whitespace-nowrap"
-          >
-            <ArrowLeft className="w-4 h-4 text-[#E5B869]" />
-            <span>Back to Museum</span>
-          </button>
-
-          <div>
-            <div className="flex items-center gap-2 text-[11px] uppercase tracking-widest text-[#C89D54]">
-              <span>Activity 2 · Course Outcome 1 (CO1)</span>
-              <span aria-hidden="true">·</span>
-              <span>8 Heritage Centers</span>
-            </div>
-            <h1 className="font-serif-display text-2xl sm:text-3xl font-semibold text-[#F7F4EE]">
-              EXPLORE INDIA — ART &amp; CULTURE MAP
-            </h1>
+    <div className="flex-1 flex flex-col bg-[#14110F] text-[#F7F4EE] overflow-hidden">
+      {/* Section Sub-Header Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-4 px-4 sm:px-6 py-3.5 bg-[#191410] border-b border-[#C89D54]/35 shrink-0">
+        <div>
+          <div className="flex flex-wrap items-center gap-2 text-[11px] uppercase tracking-widest text-[#C89D54] font-semibold">
+            <span>CLA-I</span>
+            <span aria-hidden="true">·</span>
+            <span>CO1</span>
+            <span aria-hidden="true">·</span>
+            <span>Activity 2 — Interactive Indian Art Map</span>
           </div>
+          <h1 className="font-serif-display text-2xl sm:text-3xl font-semibold text-[#F7F4EE]">
+            EXPLORE INDIA — ART &amp; CULTURE MAP
+          </h1>
         </div>
 
-        {/* Map Controls: Zoom In, Zoom Out, Reset Map */}
+        {/* Map Controls: Zoom In, Zoom Out, Reset Map, Back to 3D Hall */}
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center rounded-lg bg-[#241D17] border border-[#C89D54]/35 p-0.5">
             <button
@@ -282,7 +282,7 @@ export const ArtMapSection: React.FC<ArtMapSectionProps> = ({
               title="Zoom In"
             >
               <Plus className="w-3.5 h-3.5 text-[#E5B869]" />
-              <span className="hidden sm:inline">Zoom In</span>
+              <span>Zoom In</span>
             </button>
             <div className="w-px h-4 bg-[#C89D54]/25" />
             <button
@@ -292,27 +292,36 @@ export const ArtMapSection: React.FC<ArtMapSectionProps> = ({
               title="Zoom Out"
             >
               <Minus className="w-3.5 h-3.5 text-[#E5B869]" />
-              <span className="hidden sm:inline">Zoom Out</span>
+              <span>Zoom Out</span>
             </button>
           </div>
 
           <button
             type="button"
             onClick={handleResetMap}
-            className="px-3.5 py-2 rounded-lg bg-[#C89D54] hover:bg-[#DFB56A] text-[#14110F] text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
+            className="px-3.5 py-2 rounded-lg bg-[#C89D54] hover:bg-[#DFB56A] text-[#14110F] text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
           >
             <RotateCcw className="w-3.5 h-3.5" />
             <span>Reset Map</span>
           </button>
-        </div>
-      </header>
 
-      {/* Main Content Split: Left Search/Filter Directory & Active Dossier + Right Leaflet Map */}
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 overflow-hidden">
+          <button
+            type="button"
+            onClick={onBackToMuseum}
+            className="px-3.5 py-2 rounded-lg bg-[#261E18] hover:bg-[#352A21] border border-[#C89D54]/45 text-xs font-semibold text-[#F7F4EE] flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
+          >
+            <Cuboid className="w-3.5 h-3.5 text-[#E5B869]" />
+            <span>View in 3D Hall</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Main Content Split: Left Search/Filter Directory + Right Leaflet Map */}
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 overflow-y-auto lg:overflow-hidden">
         {/* Left Sidebar (5 cols on lg): Search, Filter & 8 Locations Directory */}
-        <aside className="lg:col-span-5 flex flex-col bg-[#18130F] border-r border-[#C89D54]/25 overflow-hidden">
+        <aside className="lg:col-span-5 flex flex-col bg-[#18130F] border-b lg:border-b-0 lg:border-r border-[#C89D54]/25 max-h-[420px] lg:max-h-none overflow-hidden">
           {/* Search & Regional Filter Bar */}
-          <div className="p-4 space-y-3 border-b border-[#C89D54]/20 bg-[#14100D]">
+          <div className="p-4 space-y-3 border-b border-[#C89D54]/20 bg-[#14100D] shrink-0">
             <div className="relative">
               <Search className="w-4 h-4 text-[#A89F91] absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
@@ -400,7 +409,12 @@ export const ArtMapSection: React.FC<ArtMapSectionProps> = ({
 
                     <p className="text-xs font-medium text-[#E5B869] mt-1">{loc.artTradition}</p>
                     <p className="text-xs text-[#D6CEBE] mt-1.5 leading-relaxed">
+                      <strong className="text-[#F7F4EE]">Historical Context:</strong>{' '}
                       {loc.shortDescription}
+                    </p>
+                    <p className="text-xs text-[#A89F91] mt-1 leading-relaxed">
+                      <strong className="text-[#D6CEBE]">Cultural Significance:</strong>{' '}
+                      {loc.culturalSignificance}
                     </p>
 
                     <div className="mt-3 flex items-center gap-2">
@@ -436,24 +450,24 @@ export const ArtMapSection: React.FC<ArtMapSectionProps> = ({
         </aside>
 
         {/* Right Area (7 cols on lg): Live Leaflet OpenStreetMap Viewport + Floating Selected Preview */}
-        <div className="lg:col-span-7 relative w-full h-full min-h-[380px] bg-[#191613]">
+        <div className="lg:col-span-7 relative w-full h-[460px] lg:h-full bg-[#191613]">
           <div ref={mapContainerRef} className="w-full h-full z-10" />
 
           {/* Bottom Floating Quick Bar for Currently Focused Location */}
           {activeSite && (
-            <div className="absolute bottom-4 left-4 right-4 z-20 p-4 rounded-xl bg-[#18130F]/95 backdrop-blur-md border border-[#C89D54]/50 shadow-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="absolute bottom-3 left-3 right-3 z-20 p-3.5 rounded-xl bg-[#18130F]/95 backdrop-blur-md border border-[#C89D54]/50 shadow-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <div>
                 <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-[#C89D54]">
                   <Compass className="w-3.5 h-3.5" />
                   <span>
-                    Selected Marker 0{activeSite.order}: {activeSite.name} · {activeSite.stateRegion}
+                    Marker 0{activeSite.order}: {activeSite.name} · {activeSite.stateRegion}
                   </span>
                 </div>
-                <h3 className="font-serif-display text-xl font-semibold text-[#F7F4EE]">
+                <h3 className="font-serif-display text-lg sm:text-xl font-semibold text-[#F7F4EE]">
                   {activeSite.artTradition}
                 </h3>
                 <p className="text-xs text-[#D6CEBE] line-clamp-1 mt-0.5">
-                  {activeSite.shortDescription}
+                  {activeSite.culturalSignificance}
                 </p>
               </div>
 
@@ -461,7 +475,7 @@ export const ArtMapSection: React.FC<ArtMapSectionProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsDetailsModalOpen(true)}
-                  className="px-4 py-2 rounded-lg bg-[#C89D54] hover:bg-[#DFB56A] text-[#14110F] text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
+                  className="px-4 py-2 rounded-lg bg-[#C89D54] hover:bg-[#DFB56A] text-[#14110F] text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
                 >
                   <Eye className="w-3.5 h-3.5" />
                   <span>View Details</span>
@@ -482,8 +496,8 @@ export const ArtMapSection: React.FC<ArtMapSectionProps> = ({
         >
           <div className="w-full max-w-3xl max-h-[88vh] flex flex-col rounded-xl bg-[#1B1612] border border-[#C89D54]/60 shadow-2xl overflow-hidden text-[#F7F4EE]">
             <div className="flex items-center justify-between px-6 py-4 bg-[#130F0C] border-b border-[#C89D54]/30">
-              <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-[#C89D54]">
-                <span>Heritage Site Dossier · 0{activeSite.order} of 08</span>
+              <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-[#C89D54] font-semibold">
+                <span>CLA-I · CO1 · Heritage Site 0{activeSite.order} of 08</span>
                 <span aria-hidden="true">·</span>
                 <span>{activeSite.zone}</span>
               </div>
@@ -512,7 +526,7 @@ export const ArtMapSection: React.FC<ArtMapSectionProps> = ({
 
               <div className="p-4 rounded-lg bg-[#14100D] border border-[#C89D54]/30 space-y-1">
                 <div className="text-[11px] uppercase tracking-wider text-[#C89D54] font-semibold">
-                  Primary Art &amp; Architectural Tradition
+                  Associated Art Tradition
                 </div>
                 <div className="text-base font-semibold text-[#F7F4EE]">
                   {activeSite.artTradition}
@@ -522,7 +536,7 @@ export const ArtMapSection: React.FC<ArtMapSectionProps> = ({
 
               <div className="space-y-2">
                 <h3 className="text-xs uppercase tracking-widest text-[#C89D54] font-semibold">
-                  Historical &amp; Cultural Overview
+                  Historical Context
                 </h3>
                 <p className="text-sm text-[#EAE2D3] leading-relaxed">
                   {activeSite.detailedHistory}
@@ -574,7 +588,7 @@ export const ArtMapSection: React.FC<ArtMapSectionProps> = ({
                   }}
                   className="px-4 py-2 rounded-lg bg-[#C89D54] hover:bg-[#DFB56A] text-[#14110F] text-xs font-semibold transition-colors cursor-pointer"
                 >
-                  Open Corresponding History Hall Exhibit →
+                  Open Corresponding History Timeline Exhibit →
                 </button>
               ) : (
                 <span className="text-xs text-[#A89F91]">

@@ -5,23 +5,19 @@ import {
   TIMELINE_EXHIBITS,
   TimelineExhibit
 } from './data/exhibitsData';
+import { PersistentNavbar, NavSection } from './components/PersistentNavbar';
 import { EntranceScreen } from './components/EntranceScreen';
 import { MuseumHUD } from './components/MuseumHUD';
 import { ExhibitModal } from './components/ExhibitModal';
 import { TimelineOverviewModal } from './components/TimelineOverviewModal';
 import { ArtMapSection } from './components/ArtMapSection';
 import { FusionGallerySection } from './components/FusionGallerySection';
+import { AboutSection } from './components/AboutSection';
 import { CameraPose, HoveredTarget, MuseumScene3D } from './scenes/MuseumScene3D';
 
-type ActiveOverlay = 'none' | 'timeline-overview' | 'art-map' | 'fusion-gallery';
-
 export default function App() {
-  // Whether visitor is on the opening cinematic entrance screen or inside the 3D museum
-  const [hasEnteredMuseum, setHasEnteredMuseum] = useState<boolean>(false);
-  const [isInitializing3D, setIsInitializing3D] = useState<boolean>(false);
-
-  // Active full-section overlay or exhibit modal
-  const [activeOverlay, setActiveOverlay] = useState<ActiveOverlay>('none');
+  // Active primary section: 'home' | '3d-hall' | 'timeline' | 'art-map' | 'fusion-gallery' | 'about'
+  const [activeSection, setActiveSection] = useState<NavSection>('home');
   const [selectedExhibitId, setSelectedExhibitId] = useState<string | null>(null);
   const [focusedMapSiteId, setFocusedMapSiteId] = useState<string | null>(null);
 
@@ -68,7 +64,7 @@ export default function App() {
     setTourStopIndex(index);
     setTourProgress(0);
     setSelectedExhibitId(null);
-    setActiveOverlay('none');
+    setActiveSection('3d-hall');
     setTargetCameraPose({
       position: stop.cameraPos,
       lookAt: stop.cameraLookAt,
@@ -76,9 +72,14 @@ export default function App() {
     });
   }, []);
 
-  // Auto-advance timer for Guided Tour when active and not paused or viewing a modal
+  // Auto-advance timer for Guided Tour when active and in 3D Hall
   useEffect(() => {
-    if (!isTourActive || isTourPaused || selectedExhibitId || activeOverlay !== 'none') {
+    if (
+      !isTourActive ||
+      isTourPaused ||
+      selectedExhibitId ||
+      activeSection !== '3d-hall'
+    ) {
       return;
     }
 
@@ -89,7 +90,7 @@ export default function App() {
           applyTourStop(nextIdx);
           return 0;
         }
-        return prev + 2; // ~9 seconds per stop
+        return prev + 2;
       });
     }, 180);
 
@@ -99,18 +100,16 @@ export default function App() {
     isTourPaused,
     tourStopIndex,
     selectedExhibitId,
-    activeOverlay,
+    activeSection,
     applyTourStop
   ]);
 
-  // Global ESC key handler to close any opened exhibit panel, map, or fusion overlay
+  // Global ESC key handler to close any opened exhibit modal or return to 3D hall / home
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         if (selectedExhibitId) {
           setSelectedExhibitId(null);
-        } else if (activeOverlay !== 'none') {
-          setActiveOverlay('none');
         } else if (isTourActive) {
           setIsTourActive(false);
         }
@@ -118,55 +117,40 @@ export default function App() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedExhibitId, activeOverlay, isTourActive]);
+  }, [selectedExhibitId, isTourActive]);
 
-  // Enter Museum handler with brief loading state
-  const handleEnterMuseum = () => {
-    setIsInitializing3D(true);
-    setHasEnteredMuseum(true);
-    setActiveOverlay('none');
+  // Unified section navigation handler
+  const handleNavigate = (section: NavSection) => {
     setSelectedExhibitId(null);
-    setTargetCameraPose({
-      position: [0, 2.2, 5.5],
-      lookAt: [0, 2.2, -12],
-      timestamp: Date.now()
-    });
-    setTimeout(() => {
-      setIsInitializing3D(false);
-    }, 320);
-  };
+    if (section !== 'art-map') {
+      setFocusedMapSiteId(null);
+    }
+    setActiveSection(section);
 
-  // Quick-jump from Entrance Screen
-  const handleQuickJump = (destination: 'history' | 'map' | 'fusion' | 'tour') => {
-    setHasEnteredMuseum(true);
-    setSelectedExhibitId(null);
-
-    if (destination === 'history') {
-      setActiveOverlay('timeline-overview');
+    if (section === '3d-hall') {
+      setTargetCameraPose({
+        position: [0, 2.2, 5.5],
+        lookAt: [0, 2.2, -12],
+        timestamp: Date.now()
+      });
+    } else if (section === 'timeline') {
       setTargetCameraPose({
         position: [-3.2, 2.2, -14],
         lookAt: [-8.4, 2.5, -14],
         timestamp: Date.now()
       });
-    } else if (destination === 'map') {
-      setActiveOverlay('art-map');
+    } else if (section === 'art-map') {
       setTargetCameraPose({
         position: [-16.5, 2.2, -2],
         lookAt: [-22.4, 2.6, -2],
         timestamp: Date.now()
       });
-    } else if (destination === 'fusion') {
-      setActiveOverlay('fusion-gallery');
+    } else if (section === 'fusion-gallery') {
       setTargetCameraPose({
         position: [16.5, 2.2, -2],
         lookAt: [22.4, 2.8, -2],
         timestamp: Date.now()
       });
-    } else if (destination === 'tour') {
-      setActiveOverlay('none');
-      setIsTourActive(true);
-      setIsTourPaused(false);
-      applyTourStop(0);
     }
   };
 
@@ -174,7 +158,8 @@ export default function App() {
   const handleTeleportToExhibit = (exhibitId: string) => {
     const found = TIMELINE_EXHIBITS.find((e) => e.id === exhibitId);
     if (!found) return;
-    setActiveOverlay('none');
+    setSelectedExhibitId(null);
+    setActiveSection('3d-hall');
     setTargetCameraPose({
       position: found.cameraStandPos,
       lookAt: found.cameraLookAt,
@@ -186,7 +171,6 @@ export default function App() {
   const handleInspectExhibit = (exhibitId: string) => {
     const found = TIMELINE_EXHIBITS.find((e) => e.id === exhibitId);
     if (!found) return;
-    setActiveOverlay('none');
     setSelectedExhibitId(exhibitId);
     setTargetCameraPose({
       position: found.cameraStandPos,
@@ -218,129 +202,113 @@ export default function App() {
     if (stop.section === 'history' && stop.exhibitId) {
       setSelectedExhibitId(stop.exhibitId);
     } else if (stop.section === 'map') {
-      setActiveOverlay('art-map');
+      setActiveSection('art-map');
     } else if (stop.section === 'fusion') {
-      setActiveOverlay('fusion-gallery');
+      setActiveSection('fusion-gallery');
     }
   };
 
-  if (!hasEnteredMuseum) {
-    return (
-      <EntranceScreen
-        onEnterMuseum={handleEnterMuseum}
-        onQuickJump={handleQuickJump}
-      />
-    );
-  }
-
   return (
-    <div className="relative w-screen h-screen overflow-hidden bg-[#14110F] text-[#F7F4EE]">
-      {/* Brief Loading Screen Transition */}
-      {isInitializing3D && (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#14110F] text-[#F7F4EE]">
-          <div className="w-12 h-12 rounded-full border-2 border-[#C89D54] border-t-transparent animate-spin mb-4" />
-          <p className="font-serif-display text-2xl text-[#E5B869]">
-            Entering Bharat Kala Museum...
-          </p>
-          <p className="text-xs text-[#A89F91] mt-1">
-            Preparing 3D Architectural Galleries &amp; Curatorial Archives
-          </p>
-        </div>
-      )}
-
-      {/* 3D Navigable Museum Scene */}
-      <MuseumScene3D
-        targetCameraPose={targetCameraPose}
-        onSelectExhibit={handleInspectExhibit}
-        onOpenMapSection={() => {
-          setFocusedMapSiteId(null);
-          setActiveOverlay('art-map');
-        }}
-        onOpenFusionSection={() => setActiveOverlay('fusion-gallery')}
-        onUpdateVisitorStatus={setVisitorStatus}
-        onHoverTargetChange={setHoveredTarget}
-        virtualMoveInput={virtualMoveInput}
-        isModalOpen={Boolean(selectedExhibitId) || activeOverlay !== 'none'}
-      />
-
-      {/* Interactive Museum HUD */}
-      <MuseumHUD
-        visitorStatus={visitorStatus}
-        hoveredTarget={hoveredTarget}
-        onGoHomeEntrance={() => {
-          setIsTourActive(false);
-          setSelectedExhibitId(null);
-          setActiveOverlay('none');
-          setHasEnteredMuseum(false);
-        }}
-        onTeleportToEntranceHall={() => {
-          setSelectedExhibitId(null);
-          setActiveOverlay('none');
-          setTargetCameraPose({
-            position: [0, 2.2, 5.5],
-            lookAt: [0, 2.2, -12],
-            timestamp: Date.now()
-          });
-        }}
-        onOpenTimelineOverview={() => {
-          setSelectedExhibitId(null);
-          setActiveOverlay('timeline-overview');
-          setTargetCameraPose({
-            position: [-3.2, 2.2, -14],
-            lookAt: [-8.4, 2.5, -14],
-            timestamp: Date.now()
-          });
-        }}
-        onOpenArtMap={() => {
-          setSelectedExhibitId(null);
-          setFocusedMapSiteId(null);
-          setActiveOverlay('art-map');
-          setTargetCameraPose({
-            position: [-16.5, 2.2, -2],
-            lookAt: [-22.4, 2.6, -2],
-            timestamp: Date.now()
-          });
-        }}
-        onOpenFusionGallery={() => {
-          setSelectedExhibitId(null);
-          setActiveOverlay('fusion-gallery');
-          setTargetCameraPose({
-            position: [16.5, 2.2, -2],
-            lookAt: [22.4, 2.8, -2],
-            timestamp: Date.now()
-          });
-        }}
-        onTeleportToExhibit={handleTeleportToExhibit}
-        onInspectExhibit={handleInspectExhibit}
-        isTourActive={isTourActive}
-        tourStopIndex={tourStopIndex}
-        isTourPaused={isTourPaused}
-        tourProgress={tourProgress}
+    <div className="relative w-screen h-screen flex flex-col overflow-hidden bg-[#14110F] text-[#F7F4EE]">
+      {/* Persistent Museum Navigation Bar with Mobile Menu */}
+      <PersistentNavbar
+        activeSection={activeSection}
+        onNavigate={handleNavigate}
         onStartGuidedTour={handleStartGuidedTour}
-        onNextTourStop={handleNextTourStop}
-        onPrevTourStop={handlePrevTourStop}
-        onTogglePauseTour={() => setIsTourPaused((p) => !p)}
-        onExitGuidedTour={() => setIsTourActive(false)}
-        onInspectCurrentTourStop={handleInspectCurrentTourStop}
-        onVirtualMoveChange={setVirtualMoveInput}
+        isTourActive={isTourActive}
       />
 
-      {/* ACTIVITY 1: Chronological Visual Timeline Overview Modal */}
-      {activeOverlay === 'timeline-overview' && (
-        <TimelineOverviewModal
-          onClose={() => setActiveOverlay('none')}
-          onInspectExhibit={(id) => {
-            setActiveOverlay('none');
-            handleInspectExhibit(id);
-          }}
-          onWalkToExhibit={(id) => {
-            setActiveOverlay('none');
-            handleTeleportToExhibit(id);
-          }}
-        />
-      )}
+      {/* Main Viewport Area below Persistent Navbar */}
+      <div className="relative flex-1 flex flex-col overflow-hidden">
+        {/* SECTION: HOME (Landing Page) */}
+        {activeSection === 'home' && (
+          <EntranceScreen
+            onEnterMuseum={() => handleNavigate('3d-hall')}
+            onNavigate={handleNavigate}
+            onStartGuidedTour={handleStartGuidedTour}
+          />
+        )}
 
-      {/* ACTIVITY 1: Individual Exhibit Information Panel Modal */}
+        {/* SECTION: 3D NAVIGABLE VIRTUAL MUSEUM HALL */}
+        {activeSection === '3d-hall' && (
+          <div className="relative flex-1 w-full h-full overflow-hidden">
+            <MuseumScene3D
+              targetCameraPose={targetCameraPose}
+              onSelectExhibit={handleInspectExhibit}
+              onOpenMapSection={() => handleNavigate('art-map')}
+              onOpenFusionSection={() => handleNavigate('fusion-gallery')}
+              onUpdateVisitorStatus={setVisitorStatus}
+              onHoverTargetChange={setHoveredTarget}
+              virtualMoveInput={virtualMoveInput}
+              isModalOpen={Boolean(selectedExhibitId)}
+            />
+
+            <MuseumHUD
+              visitorStatus={visitorStatus}
+              hoveredTarget={hoveredTarget}
+              onGoHomeEntrance={() => handleNavigate('home')}
+              onTeleportToEntranceHall={() => {
+                setSelectedExhibitId(null);
+                setTargetCameraPose({
+                  position: [0, 2.2, 5.5],
+                  lookAt: [0, 2.2, -12],
+                  timestamp: Date.now()
+                });
+              }}
+              onOpenTimelineOverview={() => handleNavigate('timeline')}
+              onOpenArtMap={() => handleNavigate('art-map')}
+              onOpenFusionGallery={() => handleNavigate('fusion-gallery')}
+              onOpenAbout={() => handleNavigate('about')}
+              onTeleportToExhibit={handleTeleportToExhibit}
+              onInspectExhibit={handleInspectExhibit}
+              isTourActive={isTourActive}
+              tourStopIndex={tourStopIndex}
+              isTourPaused={isTourPaused}
+              tourProgress={tourProgress}
+              onStartGuidedTour={handleStartGuidedTour}
+              onNextTourStop={handleNextTourStop}
+              onPrevTourStop={handlePrevTourStop}
+              onTogglePauseTour={() => setIsTourPaused((p) => !p)}
+              onExitGuidedTour={() => setIsTourActive(false)}
+              onInspectCurrentTourStop={handleInspectCurrentTourStop}
+              onVirtualMoveChange={setVirtualMoveInput}
+            />
+          </div>
+        )}
+
+        {/* SECTION: ACTIVITY 1 — INTERACTIVE INDIAN ART TIMELINE (CO1) */}
+        {activeSection === 'timeline' && (
+          <TimelineOverviewModal
+            onClose={() => handleNavigate('3d-hall')}
+            onInspectExhibit={(id) => handleInspectExhibit(id)}
+            onWalkToExhibit={(id) => handleTeleportToExhibit(id)}
+          />
+        )}
+
+        {/* SECTION: ACTIVITY 2 — INTERACTIVE INDIAN ART MAP (CO1) */}
+        {activeSection === 'art-map' && (
+          <ArtMapSection
+            initialSiteId={focusedMapSiteId}
+            onBackToMuseum={() => handleNavigate('3d-hall')}
+            onInspectLinkedTimelineExhibit={(exhibitId) => handleInspectExhibit(exhibitId)}
+          />
+        )}
+
+        {/* SECTION: ACTIVITY 3 — REGIONAL PAINTING FUSION GALLERY (CO2) */}
+        {activeSection === 'fusion-gallery' && (
+          <FusionGallerySection onBackToMuseum={() => handleNavigate('3d-hall')} />
+        )}
+
+        {/* SECTION: ABOUT BHARAT KALA MUSEUM */}
+        {activeSection === 'about' && (
+          <AboutSection
+            onNavigate={handleNavigate}
+            onStartGuidedTour={handleStartGuidedTour}
+          />
+        )}
+      </div>
+
+      {/* ACTIVITY 1: Detailed Exhibit Information Modal (accessible from Timeline, 3D Hall, or Map) */}
       {selectedExhibit && (
         <ExhibitModal
           exhibit={selectedExhibit}
@@ -349,26 +317,9 @@ export default function App() {
           onOpenLinkedMapSite={(siteId) => {
             setSelectedExhibitId(null);
             setFocusedMapSiteId(siteId);
-            setActiveOverlay('art-map');
+            setActiveSection('art-map');
           }}
         />
-      )}
-
-      {/* ACTIVITY 2: Explore India — Art & Culture Map (Leaflet + OpenStreetMap) */}
-      {activeOverlay === 'art-map' && (
-        <ArtMapSection
-          initialSiteId={focusedMapSiteId}
-          onBackToMuseum={() => setActiveOverlay('none')}
-          onInspectLinkedTimelineExhibit={(exhibitId) => {
-            setActiveOverlay('none');
-            handleInspectExhibit(exhibitId);
-          }}
-        />
-      )}
-
-      {/* ACTIVITY 3: Regional Painting Fusion Gallery (Warli × Kalamkari · CO2) */}
-      {activeOverlay === 'fusion-gallery' && (
-        <FusionGallerySection onBackToMuseum={() => setActiveOverlay('none')} />
       )}
     </div>
   );
